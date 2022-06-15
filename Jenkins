@@ -1,0 +1,57 @@
+pipeline{
+    agent any 
+    stages {
+        stage('Build') { 
+            steps {
+               echo 'building' 
+            }
+        }
+        stage('Test') { 
+            steps {
+               echo 'Testing'
+            }
+        }
+        stage('Deploy') { 
+            steps {
+        
+               echo 'deploying'
+            }
+        }
+    }
+}
+
+
+post {
+         failure {
+             sendSlackMessage('FAILURE', '#A30200')
+             sendEmailOnBuildFail()
+         }
+         unstable {
+             sendSlackMessage('UNSTABLE', '#A30200')
+             sendEmailOnBuildFail()
+         }
+         fixed {
+             sendSlackMessage('SUCCESS', '#2EB886')
+         }
+         success {
+             script {
+                 if (env.TAG_NAME) {
+                     sendSlackMessage('SUCCESS', '#2EB886')
+                 }
+             }
+              sendEmailOnBuildFail()
+         }
+         always {
+             cleanWs notFailBuild: true
+         }
+     }
+ }
+ 
+ 
+}
+
+def sendEmailOnBuildFail() {
+      emailext body: "${currentBuild.currentResult}: Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}",
+      recipientProviders: [buildUser()],
+      subject: "Jenkins Build ${currentBuild.currentResult}: Job ${env.JOB_NAME}"
+ }
